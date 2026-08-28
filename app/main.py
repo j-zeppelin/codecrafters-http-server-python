@@ -70,6 +70,12 @@ class HttpServer:
                 return HttpResponse(HttpStatus.OK)
             case ["echo", msg]:
                 return HttpResponse(HttpStatus.OK, {"Content-Type": "text/plain"}, msg)
+            case ["user-agent"]:
+                return HttpResponse(
+                    HttpStatus.OK,
+                    {"Content-Type": "text/plain"},
+                    req.headers.get("user-agent", ""),
+                )
             case _:
                 return HttpResponse(HttpStatus.NOT_FOUND)
 
