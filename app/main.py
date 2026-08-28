@@ -62,8 +62,8 @@ class HttpServer:
             threading.Thread(target=self.__handle_request, args=(client,)).start()
 
     def __handle_request(self, client: socket.socket):
-        (request_line, headers, body) = self.__read_req(client)
-        response = self.__route(HttpRequest(request_line, headers, body))
+        request = self.__read_req(client)
+        response = self.__route(request)
 
         client.sendall(str(response).encode())
         client.close()
@@ -83,7 +83,7 @@ class HttpServer:
             case _:
                 return HttpResponse(HttpStatus.NOT_FOUND)
 
-    def __read_req(self, client: socket.socket) -> tuple[str, dict, str]:
+    def __read_req(self, client: socket.socket) -> HttpRequest:
         data = b""
         while b"\r\n\r\n" not in data:
             chunk = client.recv(1024)
@@ -110,7 +110,7 @@ class HttpServer:
                 break
             body += chunk
 
-        return (request_line.decode("utf-8"), headers, body.decode("utf-8"))
+        return HttpRequest(request_line.decode("utf-8"), headers, body.decode("utf-8"))
 
 
 def main():
