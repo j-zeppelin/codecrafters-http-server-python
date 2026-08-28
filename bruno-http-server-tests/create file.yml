@@ -1,0 +1,24 @@
+info:
+  name: create file
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: http://127.0.0.1:4221/files/number
+  headers:
+    - name: Content-Type
+      value: application/octet-stream
+    - name: Content-Length
+      value: "5"
+  body:
+    type: text
+    data: |
+      12345
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
