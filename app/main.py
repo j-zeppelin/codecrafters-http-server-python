@@ -46,9 +46,9 @@ class HttpResponse:
 
     def __str__(self):
         headers = "\r\n".join(
-            [f"{key}: {value}\r\n" for key, value in self.headers.items()]
+            [f"{key}: {value}" for key, value in self.headers.items()]
         )
-        return f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n{headers}\r\n{self.body}"
+        return f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n{headers}\r\n\r\n{self.body}"
 
 
 class HttpServer:
