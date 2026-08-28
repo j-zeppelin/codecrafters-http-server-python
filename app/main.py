@@ -31,12 +31,22 @@ class HttpRequest:
 
 
 class HttpResponse:
-    def __init__(self, status_code: HttpStatus, body: str = ""):
+    def __init__(
+        self,
+        status_code: HttpStatus,
+        headers: dict[str, str] = dict(),
+        body: str | None = None,
+    ):
         self.status_code = status_code
+        self.headers = headers
         self.body = body
 
+        if self.body:
+            self.headers["Content-Length"] = str(len(self.body))
+
     def __str__(self):
-        return f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n\r\n{self.body}"
+        headers = "\r\n".join([f"{key}: {value}\r\n" for key, value in self.headers])
+        return f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n{headers}\r\n{self.body}"
 
 
 class HttpServer:
@@ -47,18 +57,24 @@ class HttpServer:
         while True:
             (client, _) = self.socket.accept()
             (request_line, headers, body) = self.__read_req(client)
-            self.__send_response(client, HttpRequest(request_line, headers, body))
+            response = self.__route(HttpRequest(request_line, headers, body))
+            self.__send_response(client, response)
 
             client.close()
 
-    def __send_response(self, client: socket.socket, req: HttpRequest):
+    def __route(self, req: HttpRequest) -> HttpResponse:
         match req.target.lstrip("/").split("/"):
             case [""]:
-                client.sendall(str(HttpResponse(HttpStatus.OK)).encode())
+                return HttpResponse(HttpStatus.OK)
             case ["echo", msg]:
-                client.sendall(str(HttpResponse(HttpStatus.OK, msg)).encode())
+                return HttpResponse(
+                    HttpStatus.OK, {"Content-Type": "application/text"}, msg
+                )
             case _:
-                client.sendall(str(HttpResponse(HttpStatus.NOT_FOUND)).encode())
+                return HttpResponse(HttpStatus.NOT_FOUND)
+
+    def __send_response(self, client: socket.socket, res: HttpResponse):
+        client.sendall(str(res).encode())
 
     def __read_req(self, client: socket.socket) -> tuple[str, dict, str]:
         data = b""
