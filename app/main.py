@@ -69,9 +69,7 @@ class HttpServer:
             case [""]:
                 return HttpResponse(HttpStatus.OK)
             case ["echo", msg]:
-                return HttpResponse(
-                    HttpStatus.OK, {"Content-Type": "application/text"}, msg
-                )
+                return HttpResponse(HttpStatus.OK, {"Content-Type": "text/plain"}, msg)
             case _:
                 return HttpResponse(HttpStatus.NOT_FOUND)
 
