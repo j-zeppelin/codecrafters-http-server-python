@@ -45,7 +45,9 @@ class HttpResponse:
             self.headers["Content-Length"] = str(len(self.body))
 
     def __str__(self):
-        headers = "\r\n".join([f"{key}: {value}\r\n" for key, value in self.headers])
+        headers = "\r\n".join(
+            [f"{key}: {value}\r\n" for key, value in self.headers.items()]
+        )
         return f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n{headers}\r\n{self.body}"
 
 
