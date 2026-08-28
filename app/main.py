@@ -1,3 +1,4 @@
+import threading
 from enum import Enum, StrEnum
 from collections.abc import Buffer
 import socket  # noqa: F401
@@ -58,11 +59,14 @@ class HttpServer:
     def run(self):
         while True:
             (client, _) = self.socket.accept()
-            (request_line, headers, body) = self.__read_req(client)
-            response = self.__route(HttpRequest(request_line, headers, body))
-            self.__send_response(client, response)
+            threading.Thread(target=self.__handle_request, args=(client,)).start()
 
-            client.close()
+    def __handle_request(self, client: socket.socket):
+        (request_line, headers, body) = self.__read_req(client)
+        response = self.__route(HttpRequest(request_line, headers, body))
+        self.__send_response(client, response)
+
+        client.close()
 
     def __route(self, req: HttpRequest) -> HttpResponse:
         match req.target.lstrip("/").split("/"):
