@@ -12,7 +12,7 @@ class HttpMethod(StrEnum):
 
 class HttpStatus(Enum):
     OK = (200, "OK")
-    NOT_FOUND = (404, "NOT FOUND")
+    NOT_FOUND = (404, "Not Found")
 
     def __init__(self, code, reason):
         self.code = code
