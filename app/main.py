@@ -64,8 +64,8 @@ class HttpServer:
     def __handle_request(self, client: socket.socket):
         (request_line, headers, body) = self.__read_req(client)
         response = self.__route(HttpRequest(request_line, headers, body))
-        self.__send_response(client, response)
 
+        client.sendall(str(response).encode())
         client.close()
 
     def __route(self, req: HttpRequest) -> HttpResponse:
@@ -82,9 +82,6 @@ class HttpServer:
                 )
             case _:
                 return HttpResponse(HttpStatus.NOT_FOUND)
-
-    def __send_response(self, client: socket.socket, res: HttpResponse):
-        client.sendall(str(res).encode())
 
     def __read_req(self, client: socket.socket) -> tuple[str, dict, str]:
         data = b""
