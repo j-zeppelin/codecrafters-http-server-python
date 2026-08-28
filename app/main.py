@@ -20,31 +20,23 @@ class HttpStatus(Enum):
 
 
 class HttpRequest:
-    def __init__(self, data: str):
-        request_line, *header_lines = data.split("\r\n")
-
+    def __init__(self, request_line: str, headers: dict[str, str], body: str):
         method, target, version = request_line.split(" ", 2)
-
-        headers = {}
-        for header in header_lines:
-            if not header:
-                continue
-
-            key, value = header.split(":", 1)
-            headers[key.strip()] = value.strip()
 
         self.method = HttpMethod[method]
         self.target = target
         self.version = version
         self.headers = headers
+        self.body = body
 
 
 class HttpResponse:
-    def __init__(self, status_code: HttpStatus):
+    def __init__(self, status_code: HttpStatus, body: str = ""):
         self.status_code = status_code
+        self.body = body
 
     def __str__(self):
-        return f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n\r\n"
+        return f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n\r\n{self.body}"
 
 
 class HttpServer:
@@ -54,25 +46,48 @@ class HttpServer:
     def run(self):
         while True:
             (client, _) = self.socket.accept()
-            data = self.__read_req(client)
+            (request_line, headers, body) = self.__read_req(client)
+            self.__send_response(client, HttpRequest(request_line, headers, body))
 
-            self.__send_response(client, HttpRequest(data))
+            client.close()
 
-    def __send_response(self, socket: socket.socket, req: HttpRequest):
-        match req.target:
-            case "/":
-                socket.sendall(str(HttpResponse(HttpStatus.OK)).encode())
+    def __send_response(self, client: socket.socket, req: HttpRequest):
+        match req.target.lstrip("/").split("/"):
+            case [""]:
+                client.sendall(str(HttpResponse(HttpStatus.OK)).encode())
+            case ["echo", msg]:
+                client.sendall(str(HttpResponse(HttpStatus.OK, msg)).encode())
             case _:
-                socket.sendall(str(HttpResponse(HttpStatus.NOT_FOUND)).encode())
+                client.sendall(str(HttpResponse(HttpStatus.NOT_FOUND)).encode())
 
-    def __read_req(self, client: socket.socket) -> str:
+    def __read_req(self, client: socket.socket) -> tuple[str, dict, str]:
         data = b""
         while b"\r\n\r\n" not in data:
             chunk = client.recv(1024)
             if not chunk:
                 break
             data += chunk
-        return data.decode("utf-8")
+
+        header_section, _, body = data.partition(b"\r\n\r\n")
+
+        headers = {}
+        request_line, *header_lines = header_section.split(b"\r\n")
+        for header in header_lines:
+            if not header:
+                continue
+
+            key, value = header.split(b":", 1)
+            headers[key.strip().lower().decode()] = value.strip().decode()
+
+        content_length = int(headers.get("content-length", 0))
+
+        while len(body) < content_length:
+            chunk = client.recv(1024)
+            if not chunk:
+                break
+            body += chunk
+
+        return (request_line.decode("utf-8"), headers, body.decode("utf-8"))
 
 
 def main():
