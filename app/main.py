@@ -91,7 +91,7 @@ class HttpServer:
                 if not path.is_file():
                     return HttpResponse(HttpStatus.NOT_FOUND)
 
-                data = path.read_bytes()
+                data = path.read_text()
 
                 return HttpResponse(
                     HttpStatus.OK, {"Content-Type": "application/octet-stream"}, data
