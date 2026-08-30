@@ -1,3 +1,5 @@
+from pathlib import Path
+import sys
 import threading
 from enum import Enum, StrEnum
 from collections.abc import Buffer
@@ -36,7 +38,7 @@ class HttpResponse:
         self,
         status_code: HttpStatus,
         headers: dict[str, str] = dict(),
-        body: str | None = None,
+        body: bytes | str | None = None,
     ):
         self.status_code = status_code
         self.headers = headers
@@ -54,6 +56,10 @@ class HttpResponse:
 
 class HttpServer:
     def __init__(self, host: str, port: int):
+
+        if len(sys.argv) == 3 and sys.argv[1] == "--directory":
+            self.directory = sys.argv[2]
+
         self.socket = socket.create_server((host, port), reuse_port=True)
 
     def run(self):
@@ -79,6 +85,16 @@ class HttpServer:
                     HttpStatus.OK,
                     {"Content-Type": "text/plain"},
                     req.headers.get("user-agent", ""),
+                )
+            case ["files", filename]:
+                path = Path(self.directory) / filename
+                if not path.is_file():
+                    return HttpResponse(HttpStatus.NOT_FOUND)
+
+                data = path.read_bytes()
+
+                return HttpResponse(
+                    HttpStatus.OK, {"Content-Type": "application/octet-stream"}, data
                 )
             case _:
                 return HttpResponse(HttpStatus.NOT_FOUND)
