@@ -121,11 +121,7 @@ class HttpServer:
             encodings = encodings.split(", ")
 
             if "gzip" in encodings:
-                builder.header("Content-Encoding", encoding.)
-
-
-
-
+                builder.header("Content-Encoding", "gzip")
 
         match req.target.lstrip("/").split("/"):
             case [""]:
