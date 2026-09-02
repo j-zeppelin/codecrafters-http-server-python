@@ -136,7 +136,7 @@ class HttpServer:
 
             client.sendall(response.to_bytes())
 
-            connection = request.headers.get("connection")
+            connection = response.headers.get("connection")
             if connection == "close":
                 client.close()
 
@@ -149,6 +149,10 @@ class HttpServer:
 
             if "gzip" in encodings:
                 builder.header("Content-Encoding", "gzip")
+
+        connection = req.headers.get("connection")
+        if connection == "close":
+            builder.header("Connection", "close")
 
         match req.target.lstrip("/").split("/"):
             case [""]:
