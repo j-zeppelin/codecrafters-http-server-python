@@ -129,13 +129,16 @@ class HttpServer:
             threading.Thread(target=self.__handle_request, args=(client,)).start()
 
     def __handle_request(self, client: socket.socket):
-        while client.fileno() != 1:
+        while True:
             request = self.__read_req(client)
 
             response = self.__route(request)
-            print(f"RESPONSE {str(response.to_bytes())}")
 
             client.sendall(response.to_bytes())
+
+            connection = request.headers.get("connection")
+            if connection == "close":
+                client.close()
 
     def __route(self, req: HttpRequest) -> HttpResponse:
         builder = HttpResponseBuilder()
