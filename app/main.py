@@ -35,6 +35,10 @@ class HttpRequest:
         self.headers = headers
         self.body = body
 
+    def __str__(self):
+        header_summary = ", ".join([f"{k}: {v}" for k, v in self.headers.items()])
+        return f"{self.method.value} {self.target} {self.version}\nHeaders: {header_summary}"
+
 
 class HttpResponse:
     _guard = object()
@@ -114,6 +118,8 @@ class HttpServer:
 
     def __handle_request(self, client: socket.socket):
         request = self.__read_req(client)
+        print(request)
+
         response = self.__route(request)
 
         client.sendall(str(response).encode())
