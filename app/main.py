@@ -1,3 +1,4 @@
+import gzip
 from pathlib import Path
 import sys
 import threading
@@ -81,7 +82,12 @@ class HttpResponseBuilder:
         return self
 
     def body(self, body: str) -> "HttpResponseBuilder":
-        self._body = body
+        if self._headers.get("Content-Encoding"):
+            self._headers["Content-Type"] = "text/plain"
+            self._body = str(gzip.compress(body.encode("utf-8")))
+        else:
+            self._body = body
+
         return self
 
     def build(self) -> HttpResponse:
