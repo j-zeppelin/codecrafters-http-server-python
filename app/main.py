@@ -117,7 +117,7 @@ class HttpServer:
         builder = HttpResponseBuilder()
 
         encoding = req.headers.get("accept-encoding")
-        if encoding:
+        if encoding and encoding == "gzip":
             builder.header("Content-Encoding", encoding)
 
         match req.target.lstrip("/").split("/"):
