@@ -48,7 +48,7 @@ class HttpResponse:
         guard,
         status_code: HttpStatus,
         headers: dict[str, str] = dict(),
-        body: str | None = None,
+        body: bytes | None = None,
     ):
         if guard is not HttpResponse._guard:
             raise TypeError("HttpResponse must be constructed via HttpResponseBuilder")
@@ -57,21 +57,18 @@ class HttpResponse:
         self.headers = headers
         self.body = body
 
-        if self.body:
-            self.headers["Content-Length"] = str(len(self.body))
-
     def __str__(self):
         headers = "\r\n".join(
             [f"{key}: {value}" for key, value in self.headers.items()]
         )
-        return f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n{headers}\r\n\r\n{self.body}"
+        return f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n{headers}\r\n\r\n{str(self.body)}"
 
 
 class HttpResponseBuilder:
     def __init__(self):
         self._status_code: HttpStatus = HttpStatus.OK
         self._headers: dict[str, str] = {}
-        self._body: str | None = None
+        self._body: bytes | None = None
 
     def status(self, status_code: HttpStatus) -> "HttpResponseBuilder":
         self._status_code = status_code
@@ -86,11 +83,14 @@ class HttpResponseBuilder:
         return self
 
     def body(self, body: str) -> "HttpResponseBuilder":
+
         if self._headers.get("Content-Encoding"):
             self._headers["Content-Type"] = "text/plain"
-            self._body = str(gzip.compress(body.encode("utf-8")))
+            self._body = gzip.compress(body.encode("utf-8"))
         else:
-            self._body = body
+            self._body = body.encode("utf-8")
+
+        self._headers["Content-Length"] = str(len(self._body))
 
         return self
 
