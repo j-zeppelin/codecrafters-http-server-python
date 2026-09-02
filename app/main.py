@@ -15,7 +15,9 @@ class HttpMethod(StrEnum):
 
 class HttpStatus(Enum):
     OK = (200, "OK")
+    CREATED = (201, "Created")
     NOT_FOUND = (404, "Not Found")
+    INTERNAL_ERROR = (500, "Internal Server Error")
 
     def __init__(self, code, reason):
         self.code = code
@@ -34,12 +36,18 @@ class HttpRequest:
 
 
 class HttpResponse:
+    _guard = object()
+
     def __init__(
         self,
+        guard,
         status_code: HttpStatus,
         headers: dict[str, str] = dict(),
-        body: bytes | str | None = None,
+        body: str | None = None,
     ):
+        if guard is not HttpResponse._guard:
+            raise TypeError("HttpResponse must be constructed via HttpResponseBuilder")
+
         self.status_code = status_code
         self.headers = headers
         self.body = body
@@ -52,6 +60,37 @@ class HttpResponse:
             [f"{key}: {value}" for key, value in self.headers.items()]
         )
         return f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n{headers}\r\n\r\n{self.body}"
+
+
+class HttpResponseBuilder:
+    def __init__(self):
+        self._status_code: HttpStatus = HttpStatus.OK
+        self._headers: dict[str, str] = {}
+        self._body: str | None = None
+
+    def status(self, status_code: HttpStatus) -> "HttpResponseBuilder":
+        self._status_code = status_code
+        return self
+
+    def header(self, key: str, value: str) -> "HttpResponseBuilder":
+        self._headers[key] = value
+        return self
+
+    def headers(self, headers: dict[str, str]) -> "HttpResponseBuilder":
+        self._headers.update(headers)
+        return self
+
+    def body(self, body: str) -> "HttpResponseBuilder":
+        self._body = body
+        return self
+
+    def build(self) -> HttpResponse:
+        return HttpResponse(
+            HttpResponse._guard,
+            status_code=self._status_code,
+            headers=dict(self._headers),  # copy, so the builder can be reused
+            body=self._body,
+        )
 
 
 class HttpServer:
@@ -77,27 +116,48 @@ class HttpServer:
     def __route(self, req: HttpRequest) -> HttpResponse:
         match req.target.lstrip("/").split("/"):
             case [""]:
-                return HttpResponse(HttpStatus.OK)
+                return HttpResponseBuilder().status(HttpStatus.OK).build()
             case ["echo", msg]:
-                return HttpResponse(HttpStatus.OK, {"Content-Type": "text/plain"}, msg)
-            case ["user-agent"]:
-                return HttpResponse(
-                    HttpStatus.OK,
-                    {"Content-Type": "text/plain"},
-                    req.headers.get("user-agent", ""),
+                return (
+                    HttpResponseBuilder()
+                    .status(HttpStatus.OK)
+                    .headers({"Content-Type": "text/plain"})
+                    .body(msg)
+                    .build()
                 )
-            case ["files", filename]:
+            case ["user-agent"]:
+                return (
+                    HttpResponseBuilder()
+                    .status(HttpStatus.OK)
+                    .header("Content-Type", "text/plain")
+                    .body(req.headers.get("user-agent", ""))
+                    .build()
+                )
+            case ["files", filename] if req.method == HttpMethod.GET:
                 path = Path(self.directory) / filename
                 if not path.is_file():
-                    return HttpResponse(HttpStatus.NOT_FOUND)
+                    return HttpResponseBuilder().status(HttpStatus.NOT_FOUND).build()
 
                 data = path.read_text()
 
-                return HttpResponse(
-                    HttpStatus.OK, {"Content-Type": "application/octet-stream"}, data
+                return (
+                    HttpResponseBuilder()
+                    .status(HttpStatus.OK)
+                    .header("Content-Type", "application/octet-stream")
+                    .body(data)
+                    .build()
                 )
+
+            case ["files", filename] if req.method == HttpMethod.POST:
+                path = Path(self.directory) / filename
+
+                with open(path, "w") as f:
+                    f.write(req.body)
+
+                return HttpResponseBuilder().status(HttpStatus.CREATED).build()
+
             case _:
-                return HttpResponse(HttpStatus.NOT_FOUND)
+                return HttpResponseBuilder().status(HttpStatus.NOT_FOUND).build()
 
     def __read_req(self, client: socket.socket) -> HttpRequest:
         data = b""
