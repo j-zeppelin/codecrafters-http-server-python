@@ -129,16 +129,21 @@ class HttpServer:
             threading.Thread(target=self.__handle_request, args=(client,)).start()
 
     def __handle_request(self, client: socket.socket):
-        while client.fileno() != -1:
-            request = self.__read_req(client)
+        buffer = b""
+        try:
+            while client.fileno() != -1:
+                request, buffer = self.__read_req(client, buffer)
 
-            response = self.__route(request)
+                if request is None:
+                    break
 
-            client.sendall(response.to_bytes())
+                response = self.__route(request)
+                client.sendall(response.to_bytes())
 
-            connection = request.headers.get("connection")
-            if connection == "close":
-                client.close()
+                if request.headers.get("connection", "").lower() == "close":
+                    break
+        finally:
+            client.close()
 
     def __route(self, req: HttpRequest) -> HttpResponse:
         builder = HttpResponseBuilder()
@@ -196,15 +201,18 @@ class HttpServer:
             case _:
                 return builder.status(HttpStatus.NOT_FOUND).build()
 
-    def __read_req(self, client: socket.socket) -> HttpRequest:
-        data = b""
-        while b"\r\n\r\n" not in data:
+    def __read_req(
+        self,
+        client: socket.socket,
+        buffer: bytes,
+    ) -> tuple[HttpRequest | None, bytes]:
+        while b"\r\n\r\n" not in buffer:
             chunk = client.recv(1024)
             if not chunk:
-                break
-            data += chunk
+                return None, b""
+            buffer += chunk
 
-        header_section, _, body = data.partition(b"\r\n\r\n")
+        header_section, _, remaining = buffer.partition(b"\r\n\r\n")
 
         headers = {}
         request_line, *header_lines = header_section.split(b"\r\n")
@@ -217,13 +225,18 @@ class HttpServer:
 
         content_length = int(headers.get("content-length", 0))
 
-        while len(body) < content_length:
+        while len(remaining) < content_length:
             chunk = client.recv(1024)
             if not chunk:
-                break
-            body += chunk
+                return None, b""
+            remaining += chunk
 
-        return HttpRequest(request_line.decode("utf-8"), headers, body.decode("utf-8"))
+        body = remaining[:content_length]
+        remaining = remaining[content_length:]
+
+        return HttpRequest(
+            request_line.decode("utf-8"), headers, body.decode("utf-8")
+        ), remaining
 
 
 def main():
