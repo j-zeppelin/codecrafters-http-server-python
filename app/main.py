@@ -114,21 +114,25 @@ class HttpServer:
         client.close()
 
     def __route(self, req: HttpRequest) -> HttpResponse:
+        builder = HttpResponseBuilder()
+
+        encoding = req.headers.get("Accept-Encoding")
+        if encoding:
+            builder.header("Content-Encoding", encoding)
+
         match req.target.lstrip("/").split("/"):
             case [""]:
-                return HttpResponseBuilder().status(HttpStatus.OK).build()
+                return builder.status(HttpStatus.OK).build()
             case ["echo", msg]:
                 return (
-                    HttpResponseBuilder()
-                    .status(HttpStatus.OK)
+                    builder.status(HttpStatus.OK)
                     .headers({"Content-Type": "text/plain"})
                     .body(msg)
                     .build()
                 )
             case ["user-agent"]:
                 return (
-                    HttpResponseBuilder()
-                    .status(HttpStatus.OK)
+                    builder.status(HttpStatus.OK)
                     .header("Content-Type", "text/plain")
                     .body(req.headers.get("user-agent", ""))
                     .build()
@@ -136,13 +140,12 @@ class HttpServer:
             case ["files", filename] if req.method == HttpMethod.GET:
                 path = Path(self.directory) / filename
                 if not path.is_file():
-                    return HttpResponseBuilder().status(HttpStatus.NOT_FOUND).build()
+                    return builder.status(HttpStatus.NOT_FOUND).build()
 
                 data = path.read_text()
 
                 return (
-                    HttpResponseBuilder()
-                    .status(HttpStatus.OK)
+                    builder.status(HttpStatus.OK)
                     .header("Content-Type", "application/octet-stream")
                     .body(data)
                     .build()
@@ -154,10 +157,10 @@ class HttpServer:
                 with open(path, "w") as f:
                     f.write(req.body)
 
-                return HttpResponseBuilder().status(HttpStatus.CREATED).build()
+                return builder.status(HttpStatus.CREATED).build()
 
             case _:
-                return HttpResponseBuilder().status(HttpStatus.NOT_FOUND).build()
+                return builder.status(HttpStatus.NOT_FOUND).build()
 
     def __read_req(self, client: socket.socket) -> HttpRequest:
         data = b""
