@@ -132,7 +132,7 @@ class HttpServer:
             request = self.__read_req(client)
 
             response = self.__route(request)
-            print(f"RESPONSE {response}")
+            print(f"RESPONSE {str(response.to_bytes())}")
 
             client.sendall(response.to_bytes())
 
