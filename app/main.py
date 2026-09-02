@@ -27,7 +27,6 @@ class HttpStatus(Enum):
 
 class HttpRequest:
     def __init__(self, request_line: str, headers: dict[str, str], body: str):
-        print(request_line)
         method, target, version = request_line.split(" ", 2)
 
         self.method = HttpMethod[method]
@@ -73,7 +72,7 @@ class HttpResponse:
             f"\r\n"
         ).encode("ascii")
 
-        print(response)
+        print(f"RESPONSE {response}")
 
         return response + (self.body or b"")
 
@@ -133,7 +132,6 @@ class HttpServer:
     def __handle_request(self, client: socket.socket):
         while client.fileno() != 1:
             request = self.__read_req(client)
-            print(f"REQUEST: {request}")
 
             response = self.__route(request)
 
