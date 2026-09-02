@@ -116,7 +116,7 @@ class HttpServer:
     def __route(self, req: HttpRequest) -> HttpResponse:
         builder = HttpResponseBuilder()
 
-        encoding = req.headers.get("Accept-Encoding")
+        encoding = req.headers.get("accept-encoding")
         if encoding:
             builder.header("Content-Encoding", encoding)
 
