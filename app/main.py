@@ -116,9 +116,16 @@ class HttpServer:
     def __route(self, req: HttpRequest) -> HttpResponse:
         builder = HttpResponseBuilder()
 
-        encoding = req.headers.get("accept-encoding")
-        if encoding and encoding == "gzip":
-            builder.header("Content-Encoding", encoding)
+        encodings = req.headers.get("accept-encoding")
+        if encodings:
+            encodings = encodings.split(", ")
+
+            if "gzip" in encodings:
+                builder.header("Content-Encoding", encoding.)
+
+
+
+
 
         match req.target.lstrip("/").split("/"):
             case [""]:
