@@ -60,15 +60,16 @@ class HttpResponse:
     def to_bytes(self) -> bytes:
 
         if len(self.headers) > 0:
-            headers = "\r\n".join(
-                f"{key}: {value}" for key, value in self.headers.items()
+            headers = (
+                "\r\n".join(f"{key}: {value}" for key, value in self.headers.items())
+                + "\r\n"
             )
         else:
             headers = ""
 
         response = (
             f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n"
-            f"{headers}\r\n"
+            f"{headers}"
             f"\r\n"
         ).encode("ascii")
 
