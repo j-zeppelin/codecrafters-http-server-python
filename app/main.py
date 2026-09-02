@@ -73,6 +73,8 @@ class HttpResponse:
             f"\r\n"
         ).encode("ascii")
 
+        print(response)
+
         return response + (self.body or b"")
 
 
@@ -131,12 +133,11 @@ class HttpServer:
     def __handle_request(self, client: socket.socket):
         while client.fileno() != 1:
             request = self.__read_req(client)
-            print(request)
+            print(f"REQUEST: {request}")
 
             response = self.__route(request)
 
             client.sendall(response.to_bytes())
-            print("done")
 
     def __route(self, req: HttpRequest) -> HttpResponse:
         builder = HttpResponseBuilder()
