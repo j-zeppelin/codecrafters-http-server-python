@@ -57,11 +57,16 @@ class HttpResponse:
         self.headers = headers
         self.body = body
 
-    def __str__(self):
-        headers = "\r\n".join(
-            [f"{key}: {value}" for key, value in self.headers.items()]
-        )
-        return f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n{headers}\r\n\r\n{str(self.body)}"
+    def to_bytes(self) -> bytes:
+        headers = "\r\n".join(f"{key}: {value}" for key, value in self.headers.items())
+
+        response = (
+            f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n"
+            f"{headers}\r\n"
+            f"\r\n"
+        ).encode("ascii")
+
+        return response + (self.body or b"")
 
 
 class HttpResponseBuilder:
@@ -122,7 +127,7 @@ class HttpServer:
 
         response = self.__route(request)
 
-        client.sendall(str(response).encode())
+        client.sendall(response.to_bytes())
         client.close()
 
     def __route(self, req: HttpRequest) -> HttpResponse:
