@@ -136,7 +136,7 @@ class HttpServer:
 
             client.sendall(response.to_bytes())
 
-            connection = response.headers.get("connection")
+            connection = request.headers.get("connection")
             if connection == "close":
                 client.close()
 
