@@ -131,6 +131,7 @@ class HttpServer:
 
         connection = request.headers.get("connection")
         if connection and connection == "close":
+            print("close")
             client.close()
 
     def __route(self, req: HttpRequest) -> HttpResponse:
