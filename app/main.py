@@ -59,7 +59,11 @@ class HttpResponse:
         self.body = body
 
     def to_bytes(self) -> bytes:
-        headers = "\r\n".join(f"{key}: {value}" for key, value in self.headers.items())
+
+        if len(self.headers) > 0:
+            headers = "\r\n".join(
+                f"{key}: {value}" for key, value in self.headers.items()
+            )
 
         response = (
             f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n"
