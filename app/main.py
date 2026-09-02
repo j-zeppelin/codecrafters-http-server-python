@@ -128,7 +128,10 @@ class HttpServer:
         response = self.__route(request)
 
         client.sendall(response.to_bytes())
-        client.close()
+
+        connection = request.headers.get("connection")
+        if connection and connection == "close":
+            client.close()
 
     def __route(self, req: HttpRequest) -> HttpResponse:
         builder = HttpResponseBuilder()
