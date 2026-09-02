@@ -72,8 +72,6 @@ class HttpResponse:
             f"\r\n"
         ).encode("ascii")
 
-        print(f"RESPONSE {response}")
-
         return response + (self.body or b"")
 
 
@@ -134,6 +132,7 @@ class HttpServer:
             request = self.__read_req(client)
 
             response = self.__route(request)
+            print(f"RESPONSE {response}")
 
             client.sendall(response.to_bytes())
 
