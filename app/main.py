@@ -27,6 +27,7 @@ class HttpStatus(Enum):
 
 class HttpRequest:
     def __init__(self, request_line: str, headers: dict[str, str], body: str):
+        print(request_line)
         method, target, version = request_line.split(" ", 2)
 
         self.method = HttpMethod[method]
@@ -90,8 +91,8 @@ class HttpResponseBuilder:
     def body(self, body: str) -> "HttpResponseBuilder":
 
         if self._headers.get("Content-Encoding"):
-            self._headers["Content-Type"] = "text/plain"
             self._body = gzip.compress(body.encode("utf-8"))
+            self._headers["Content-Type"] = "text/plain"
         else:
             self._body = body.encode("utf-8")
 
@@ -122,16 +123,14 @@ class HttpServer:
             threading.Thread(target=self.__handle_request, args=(client,)).start()
 
     def __handle_request(self, client: socket.socket):
-        request = self.__read_req(client)
-        print(request)
+        while client.fileno() != 1:
+            request = self.__read_req(client)
+            print(request)
 
-        response = self.__route(request)
+            response = self.__route(request)
 
-        client.sendall(response.to_bytes())
-
-        connection = request.headers.get("connection")
-        if connection and connection == "close":
-            print("close")
+            client.sendall(response.to_bytes())
+            print("done")
 
     def __route(self, req: HttpRequest) -> HttpResponse:
         builder = HttpResponseBuilder()
