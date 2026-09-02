@@ -129,7 +129,7 @@ class HttpServer:
             threading.Thread(target=self.__handle_request, args=(client,)).start()
 
     def __handle_request(self, client: socket.socket):
-        while True:
+        while client.fileno() != -1:
             request = self.__read_req(client)
 
             response = self.__route(request)
