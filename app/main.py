@@ -48,28 +48,23 @@ class HttpResponse:
         guard,
         status_code: HttpStatus,
         headers: dict[str, str] = dict(),
-        body: bytes | None = None,
+        body: bytes = b"",
     ):
         if guard is not HttpResponse._guard:
             raise TypeError("HttpResponse must be constructed via HttpResponseBuilder")
 
         self.status_code = status_code
         self.headers = headers
+        headers.setdefault("Content-Length", str(len(body)))
         self.body = body
 
     def to_bytes(self) -> bytes:
 
-        if len(self.headers) > 0:
-            headers = (
-                "\r\n".join(f"{key}: {value}" for key, value in self.headers.items())
-                + "\r\n"
-            )
-        else:
-            headers = ""
+        headers = "\r\n".join(f"{key}: {value}" for key, value in self.headers.items())
 
         response = (
             f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n"
-            f"{headers}"
+            f"{headers}\r\n"
             f"\r\n"
         ).encode("ascii")
 
@@ -80,7 +75,7 @@ class HttpResponseBuilder:
     def __init__(self):
         self._status_code: HttpStatus = HttpStatus.OK
         self._headers: dict[str, str] = {}
-        self._body: bytes | None = None
+        self._body: bytes = b""
 
     def status(self, status_code: HttpStatus) -> "HttpResponseBuilder":
         self._status_code = status_code
@@ -120,6 +115,8 @@ class HttpServer:
 
         if len(sys.argv) == 3 and sys.argv[1] == "--directory":
             self.directory = sys.argv[2]
+        else:
+            self.directory = ""
 
         self.socket = socket.create_server((host, port), reuse_port=True)
 
@@ -133,6 +130,7 @@ class HttpServer:
         try:
             while client.fileno() != -1:
                 request, buffer = self.__read_req(client, buffer)
+                print(request)
 
                 if request is None:
                     break
