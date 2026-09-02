@@ -64,6 +64,8 @@ class HttpResponse:
             headers = "\r\n".join(
                 f"{key}: {value}" for key, value in self.headers.items()
             )
+        else:
+            headers = ""
 
         response = (
             f"HTTP/1.1 {self.status_code.code} {self.status_code.reason}\r\n"
